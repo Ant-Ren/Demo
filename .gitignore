@@ -1,0 +1,76 @@
+# Build outputs
+target/
+build/
+out/
+dist/
+classes/
+*.class
+# *.jar
+*.war
+*.ear
+*.nar
+
+# Package files
+*.zip
+*.tar.gz
+*.rar
+
+# Maven
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE - IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# IDE - VS Code (optional: ignore whole folder; uncomment to keep .vscode in repo)
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# Logs & temp
+*.log
+*.tmp
+*.temp
+*.swp
+*~
+.cache/
+
+# Test / coverage
+*.exec
+*.gcda
+*.gcno
+coverage/
+.nyc_output/
+test-output/
+test/init-classes/
+test/MANIFEST_TEST.MF
+
+# Local config (secrets, env)
+.env
+.env.local
+*.local
+*-local.md
+application-local.properties
