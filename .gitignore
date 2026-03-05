@@ -5,7 +5,7 @@ out/
 dist/
 classes/
 *.class
-# *.jar
+*.jar
 *.war
 *.ear
 *.nar
