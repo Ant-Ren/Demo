@@ -1,4 +1,4 @@
-package stake;
+package stake.service;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.net.URI;
@@ -6,15 +6,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import stake.dto.SecurityResult;
+import stake.dto.UnsafeEvent;
 
 /**
  * Checks incoming requests for security issues: path, headers, query.
  * Records client IP and logs unsafe events.
- * Singleton: only one instance exists globally.
  */
-public final class SecurityGate {
+public final class SecurityService {
 
-    private static final SecurityGate INSTANCE = new SecurityGate();
+    private static final SecurityService INSTANCE = new SecurityService();
     private static final int MAX_QUERY_LENGTH = 2048;
     private static final int MAX_HEADER_VALUE_LENGTH = 4096;
     private static final int MAX_HEADER_NAME_LENGTH = 256;
@@ -25,40 +26,15 @@ public final class SecurityGate {
     private final List<UnsafeEvent> unsafeEvents = new CopyOnWriteArrayList<>();
     private static final int MAX_EVENTS = 1000;
 
-    private SecurityGate() {}
+    private SecurityService() {}
 
-    /**
-     * Returns the single SecurityGate instance.
-     */
-    public static SecurityGate getInstance() {
+    public static SecurityService getInstance() {
         return INSTANCE;
     }
 
-    /**
-     * Result of a security check: allowed or denied with reason.
-     */
-    public record SecurityResult(boolean allowed, String reason) {
-        public static SecurityResult allow() {
-            return new SecurityResult(true, null);
-        }
-
-        public static SecurityResult deny(String reason) {
-            return new SecurityResult(false, reason);
-        }
-    }
-
-    /**
-     * Record of an unsafe event: client IP and description.
-     */
-    public record UnsafeEvent(String clientIp, String kind, String detail) {}
-
-    /**
-     * Runs all security checks on the request. Records IP and logs unsafe events when denied.
-     */
     public SecurityResult check(HttpExchange exchange) {
         String clientIp = getClientIp(exchange);
 
-        // 1. Raw path: reject path starting with "//"
         String rawPath = getRawPath(exchange);
         String authority = exchange.getRequestURI().getAuthority();
         if (authority != null || (rawPath != null && rawPath.startsWith("//"))) {
@@ -66,14 +42,12 @@ public final class SecurityGate {
             return SecurityResult.deny("Invalid path");
         }
 
-        // 2. Headers: check for dangerous or oversized headers
         String headerIssue = checkHeaders(exchange);
         if (headerIssue != null) {
             recordUnsafe(clientIp, "HEADER_UNSAFE", headerIssue);
             return SecurityResult.deny("Invalid request headers");
         }
 
-        // 3. Query: length and dangerous patterns
         String queryIssue = checkQuery(exchange);
         if (queryIssue != null) {
             recordUnsafe(clientIp, "QUERY_UNSAFE", queryIssue);
@@ -148,12 +122,9 @@ public final class SecurityGate {
         while (unsafeEvents.size() > MAX_EVENTS) {
             unsafeEvents.remove(0);
         }
-        System.err.println("[SecurityGate] " + event);
+        System.err.println("[SecurityService] " + event);
     }
 
-    /**
-     * Returns a copy of recent unsafe events (for monitoring/admin).
-     */
     public List<UnsafeEvent> getUnsafeEvents() {
         return new ArrayList<>(unsafeEvents);
     }

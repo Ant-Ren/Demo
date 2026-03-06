@@ -4,6 +4,16 @@
 - The service needs to be able to handle a lot of simultaneous requests, so bear in mind the memory and CPU resources at your disposal.
 - Do not use any external frameworks, except maybe for testing. You can use com.sun.net.httpserver.HttpServer for the http server.
 
+## Folder Structure
+stake
+├── Main                    # Entry point: startup, security and routing
+├── api                     # API layer
+│   ├── ApiRouter
+│   ├── HttpUtils
+│   └── handler (HttpHandler -> SessionHandler, StakeHandler)
+├── dto                     # Data transfer objects (SessionInfo, StakeEntry, UnsafeEvent ...)
+└── service                 # Service layer (SecurityService, SessionService, StakeService)
+
 ## Solution Design
 
 ### Security
@@ -20,22 +30,21 @@
 
 ### Business Logic
 - The key logic is to get the top 20 stakes per bet offer, and a customer can post additional stakes for the same betting offer. Also, a customer ID can appear at most once in the top 20 stakes. This alerts me to pay attention to these scenarios:
-  - When a customer posts a stake for the same bet multiple times, the system should calculate the total stake for this customer.
+  - When a customer posts a stake for the same bet multiple times, the system only keep the highest stake for this customer.
   - During the top 20 stakes sorting, what if the last position includes multiple customers, such as 3 customers who all placed a stake of 100 and 100 is the 20th stake? Following common risk-management sense, since top stakes are about alerting the company to potential large losses, I chose to implement it by returning all the stakes at the 20th position, which means the list of top stakes may be longer than 20.
-  - Besides, if the purpose is for user recommendation, then we may have a different implementation.
 
 ### Performance
 - Requrement mentioned the service need to be able to handle a lot of simultaneous requests, so business logic implementation should also consider the performance seriously.
   - After analysis, the bottleneck of system performance mainly occurs in the sorting of top N stakes. If new stakes are stored in chronological order and then sorted during retrieval, we first need to sort by each user's total stake and then pick the top N, resulting in a time complexity of O(N log n). However, if we **pre-sort stakes in descending order upon each new bet entry, the complexity of fetching the top N stakes can be reduced to O(N)**. This represents a trade-off in performance distribution.
-  - Ultimately, I chose the pre-sorting strategy: when each customer places a bet on an offer, the stakes are sorted in descending order in advance. I selected **ConcurrentSkipListSet** (using a skip list algorithm) to ensure that the time complexity for stake sorting can reach O(log n). This approach sacrifices some performance during stake intake but offers much better performance for real-time fetching and updating of the top N stakes. From a casino business risk management perspective, I believe this trade-off is more beneficial than harmful.
+  - Ultimately, I chose the pre-sorting strategy: when each customer places a bet on an offer, the stakes are sorted in descending order in advance. I selected **ConcurrentSkipListSet** (using a skip list algorithm) to ensure that the time complexity for stake sorting can reach O(log n). This approach sacrifices some performance during stake intake but offers much better performance for real-time fetching and updating of the top N stakes. 
   - In real production environment, cloud service(redis, redshift e.g.) or serverless technologies can be leveraged to effectively increase the system’s throughput to handle massive parallel betting from users.
 
 ### Engineering
-- Please note: **This project was developed through pair programming with AI**, with approximately 60%-70% of the code contributed by AI (using the tool: Cursor).
-- The entire project follows the **Single Responsibility Principle**（SRP）:
-  - SecurityGate is dedicated to intrusion and abnormal request detection (typically implemented as a singleton).
-  - SessionStore is dedicated to issuing and managing session keys (typically implemented as a singleton).
-  - StakeStore is dedicated to receiving and managing bet offers/stakes from different customers (with extensibility reserved).
+- Please note: **This project was developed through pair programming with AI**, with approximately 60%~70% of the code contributed by AI (using the tool: Cursor).
+- The entire project follows the **Single Responsibility Principle** (SRP):
+  - SecurityService is dedicated to intrusion and abnormal request detection (typically implemented as a singleton).
+  - SessionService is dedicated to issuing and managing session keys (typically implemented as a singleton).
+  - StakeService is dedicated to receiving and managing bet offers/stakes from different customers (with extensibility reserved).
 - To ensure the results meet the business requirements, which I evaluate AI could not handle, I generated a variety of test data covering different scenarios, including:
   - Bets with both large and small amounts, and customers betting on a variable number of bet offers
   - A single user placing multiple bets on the same bet offer, or multiple users betting on the same bet offer (e.g., betOfferId = 32)

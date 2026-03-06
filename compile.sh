@@ -13,7 +13,7 @@ mkdir -p "$DST" dist
 echo "Main-Class: stake.Main" > "$MANIFEST"
 echo "" >> "$MANIFEST"
 
-javac -d "$DST" "$SRC"/stake/*.java
+javac -d "$DST" $(find "$SRC" -name "*.java")
 jar cfm "$JAR" "$MANIFEST" -C "$DST" .
 echo "Built: $JAR"
 
